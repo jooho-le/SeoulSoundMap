@@ -52,6 +52,20 @@ body::before {
   z-index: 0;
 }
 
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(8, 10, 12, 0.35) 0%,
+    rgba(8, 10, 12, 0.18) 45%,
+    rgba(8, 10, 12, 0) 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
 main {
   position: relative;
   z-index: 1;
@@ -180,4 +194,19 @@ main {
 
 .score-pop {
   animation: score-pop 260ms ease-out;
+}
+
+@keyframes panel-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel-section {
+  animation: panel-fade 180ms ease-out;
 }
