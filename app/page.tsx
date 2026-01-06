@@ -4,9 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { districts } from '@/data/districts';
 import SeoulMap from '@/components/SeoulMap';
-import TopStatus from '@/components/TopStatus';
-import HoverTooltip from '@/components/HoverTooltip';
-import BottomSheet from '@/components/BottomSheet';
+import SidePanel from '@/components/SidePanel';
 import { createAudioEngine, AudioEngine } from '@/lib/audioEngine';
 
 type HoverPoint = { x: number; y: number };
@@ -74,12 +72,6 @@ export default function Home() {
     return hoveredDistrict ?? selectedDistrict;
   }, [hoveredDistrict, selectedDistrict, lockSelection]);
 
-  const pulseIntensity =
-    hoveredDistrict && hoveredDistrict.riskScore !== null
-      ? hoveredDistrict.riskScore / 100
-      : 0.35;
-  const pulseActive = Boolean(hoveredDistrict);
-
   useEffect(() => {
     if (!audioEnabled || !audioDistrict) return;
     audioRef.current?.setRisk(audioDistrict.riskScore);
@@ -133,11 +125,6 @@ export default function Home() {
     }
   };
 
-  const handleCloseSheet = () => {
-    setSelectedId(null);
-    setLockSelection(false);
-  };
-
   return (
     <main className="relative min-h-screen overflow-hidden">
       <header className="absolute left-1/2 top-6 z-10 -translate-x-1/2">
@@ -148,45 +135,41 @@ export default function Home() {
           과거부터 현재까지 서울의 위험점수변화 보기
         </Link>
       </header>
-      <TopStatus
-        district={audioDistrict}
-        pulseActive={pulseActive}
-        pulseIntensity={pulseIntensity}
-      />
 
-      <div className="relative flex min-h-screen items-center justify-center px-6 py-16">
-        <div
-          className={`pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5 bg-black/20 px-4 py-2 text-xs text-white/55 backdrop-blur-sm transition-opacity duration-500 ${
-            showHint ? 'opacity-70' : 'opacity-0'
-          }`}
-          aria-hidden={!showHint}
-        >
-          구를 가리키면 소리가 변합니다
+      <div className="grid min-h-screen grid-cols-1 items-center gap-8 px-6 py-16 lg:grid-cols-[minmax(320px,420px)_1fr] lg:gap-12">
+        <div className="order-2 flex w-full items-center lg:order-1 lg:items-start">
+          <SidePanel
+            hoveredDistrict={hoveredDistrict}
+            selectedDistrict={selectedDistrict}
+            audioEnabled={audioEnabled}
+            lockSelection={lockSelection}
+            onToggleAudio={handleToggleAudio}
+            onToggleLock={handleToggleLock}
+          />
         </div>
-        <SeoulMap
-          districts={districtData}
-          hoveredId={hoveredId}
-          selectedId={selectedId}
-          onHover={handleHover}
-          onSelect={handleSelect}
-        />
-        <HoverTooltip
-          district={hoveredDistrict}
-          position={tooltipPoint}
-          visible={Boolean(hoveredDistrict)}
-        />
-      </div>
 
-      {selectedDistrict && (
-        <BottomSheet
-          district={selectedDistrict}
-          audioEnabled={audioEnabled}
-          lockSelection={lockSelection}
-          onToggleAudio={handleToggleAudio}
-          onToggleLock={handleToggleLock}
-          onClose={handleCloseSheet}
-        />
-      )}
+        <div className="relative order-1 flex w-full justify-end lg:order-2 lg:pl-10">
+          <div className="pointer-events-none absolute inset-y-6 left-0 w-px bg-white/10" />
+          <div className="pointer-events-none absolute inset-y-0 -left-6 w-16 bg-gradient-to-r from-black/35 to-transparent" />
+          <div className="relative flex w-full justify-end">
+            <div
+              className={`pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5 bg-black/20 px-4 py-2 text-xs text-white/55 backdrop-blur-sm transition-opacity duration-500 ${
+                showHint ? 'opacity-70' : 'opacity-0'
+              }`}
+              aria-hidden={!showHint}
+            >
+              구를 가리키면 소리가 변합니다
+            </div>
+            <SeoulMap
+              districts={districtData}
+              hoveredId={hoveredId}
+              selectedId={selectedId}
+              onHover={handleHover}
+              onSelect={handleSelect}
+            />
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

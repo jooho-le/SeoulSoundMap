@@ -22,7 +22,7 @@ export default function SeoulMap({
   onSelect
 }: SeoulMapProps) {
   return (
-    <div className="map-stage relative mx-auto w-[80vmin] min-w-[260px] max-w-[920px] aspect-square">
+    <div className="map-stage relative mx-auto w-full min-w-[260px] max-w-[980px] aspect-square">
       <svg
         className="map-surface map-breathe h-full w-full"
         viewBox="0 0 1400 1400"
