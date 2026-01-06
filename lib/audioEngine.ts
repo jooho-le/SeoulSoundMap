@@ -14,7 +14,7 @@ type VoiceNodes = {
 export type AudioEngine = {
   init: () => void;
   setEnabled: (enabled: boolean) => void;
-  setRisk: (score: number) => void;
+  setRisk: (score: number | null) => void;
   dispose: () => void;
   isReady: () => boolean;
 };
@@ -172,8 +172,15 @@ export const createAudioEngine = (): AudioEngine => {
       const now = ctx.currentTime;
       smoothParam(master.gain, enabled ? 0.85 : 0, now, 0.25);
     },
-    setRisk: (score: number) => {
+    setRisk: (score: number | null) => {
       if (!ctx || !low || !mid || !high) return;
+      if (score === null) {
+        const now = ctx.currentTime;
+        smoothParam(low.gain.gain, 0, now, 0.18);
+        smoothParam(mid.gain.gain, 0, now, 0.18);
+        smoothParam(high.gain.gain, 0, now, 0.18);
+        return;
+      }
       const now = ctx.currentTime;
       const safe = clamp(score, 0, 100);
       const t = safe / 100;

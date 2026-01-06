@@ -1,11 +1,13 @@
 import { District } from '@/data/districts';
-import { getRiskColor } from '@/lib/risk';
+import { getDistrictBaseColor, getRiskColor } from '@/lib/risk';
+
+type HoverPoint = { x: number; y: number };
 
 type SeoulMapProps = {
   districts: District[];
   hoveredId: string | null;
   selectedId: string | null;
-  onHover: (id: string | null) => void;
+  onHover: (id: string | null, point?: HoverPoint) => void;
   onSelect: (id: string) => void;
 };
 
@@ -20,9 +22,9 @@ export default function SeoulMap({
   onSelect
 }: SeoulMapProps) {
   return (
-    <div className="map-stage relative mx-auto w-[90vw] max-w-[920px] aspect-square">
+    <div className="map-stage relative mx-auto w-[80vmin] min-w-[260px] max-w-[920px] aspect-square">
       <svg
-        className="map-surface h-full w-full"
+        className="map-surface map-breathe h-full w-full"
         viewBox="0 0 1400 1400"
         preserveAspectRatio="xMidYMid meet"
         role="img"
@@ -31,15 +33,19 @@ export default function SeoulMap({
       >
         <defs>
           <radialGradient id="mapGlow" cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+            <stop offset="0%" stopColor="rgba(255,255,255,0.08)" />
             <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </radialGradient>
         </defs>
-        <rect width="600" height="600" fill="url(#mapGlow)" />
+        <rect width="1400" height="1400" fill="url(#mapGlow)" />
         {districts.map((district) => {
           const isHovered = hoveredId === district.id;
           const isSelected = selectedId === district.id;
           const isDimmed = Boolean(hoveredId) && !isHovered && !isSelected;
+          const fillColor =
+            isHovered || isSelected
+              ? getRiskColor(district.riskScore)
+              : getDistrictBaseColor(district.id);
 
           return (
             <path
@@ -47,7 +53,7 @@ export default function SeoulMap({
               d={district.svgPath}
               role="button"
               tabIndex={0}
-              aria-label={`${district.nameKo} 위험도 ${district.riskScore}`}
+              aria-label={`${district.nameKo} 위험도 ${district.riskScore ?? '데이터 없음'}`}
               vectorEffect="non-scaling-stroke"
               className={classNames(
                 'district-path',
@@ -55,9 +61,26 @@ export default function SeoulMap({
                 isSelected && 'district-selected',
                 isDimmed && 'district-dim'
               )}
-              style={{ fill: getRiskColor(district.riskScore) }}
-              onMouseEnter={() => onHover(district.id)}
-              onFocus={() => onHover(district.id)}
+              style={{ fill: fillColor }}
+              onMouseEnter={(event) =>
+                onHover(district.id, {
+                  x: event.clientX,
+                  y: event.clientY
+                })
+              }
+              onMouseMove={(event) =>
+                onHover(district.id, {
+                  x: event.clientX,
+                  y: event.clientY
+                })
+              }
+              onFocus={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect();
+                onHover(district.id, {
+                  x: rect.left + rect.width / 2,
+                  y: rect.top + rect.height / 2
+                });
+              }}
               onBlur={() => onHover(null)}
               onClick={() => onSelect(district.id)}
               onKeyDown={(event) => {
