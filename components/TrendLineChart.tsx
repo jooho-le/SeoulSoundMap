@@ -9,12 +9,14 @@ type TrendLineChartProps = {
   points: TrendPoint[];
   selectedYear: number;
   onSelectYear: (year: number) => void;
+  title?: string;
 };
 
 export default function TrendLineChart({
   points,
   selectedYear,
-  onSelectYear
+  onSelectYear,
+  title = '서울 평균 위험도 추이'
 }: TrendLineChartProps) {
   const width = 560;
   const height = 180;
@@ -34,7 +36,7 @@ export default function TrendLineChart({
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-      <p className="text-sm text-white/70">서울 평균 위험도 추이</p>
+      <p className="text-sm text-white/70">{title}</p>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="mt-4 h-44 w-full"
