@@ -283,7 +283,7 @@ export async function GET(request: NextRequest) {
         const station = typeof row.경찰서 === 'string' ? row.경찰서 : '';
         if (!station.startsWith('서울')) return;
         const overrideId = stationOverrides[station];
-        let id = overrideId ?? null;
+        let id: string | null = overrideId ?? null;
         if (!id) {
           const match = districtTokens.find((item) =>
             station.includes(item.token)
