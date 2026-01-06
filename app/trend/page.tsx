@@ -160,9 +160,7 @@ export default function TrendPage() {
           <h1 className="mt-2 text-2xl font-semibold text-white">
             과거부터 현재까지 서울의 위험점수변화 보기
           </h1>
-          <p className="mt-2 text-sm text-white/60">
-            연도별 위험도 변화를 선택하거나 두 연도를 비교할 수 있습니다.
-          </p>
+          
         </div>
         <Link
           href="/"

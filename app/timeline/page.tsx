@@ -87,7 +87,7 @@ export default function TimelinePage() {
             과거부터 현재까지 서울의 위험점수변화 보기
           </h1>
           <p className="mt-2 text-sm text-white/60">
-            five(5대 범죄)와 oneonetwo(112 신고) 데이터로 연도별 흐름을 계산했습니다.
+            "서울시 5대 범죄발생 현황"과 "112 신고접수 처리 현황" 데이터로 연도별 흐름을 계산했습니다.
           </p>
         </div>
         <Link
