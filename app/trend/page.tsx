@@ -54,6 +54,9 @@ export default function TrendPage() {
   const [yearB, setYearB] = useState(years[years.length - 1]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [tooltipPoint, setTooltipPoint] = useState<HoverPoint | null>(null);
+  const [selectedDistrictId, setSelectedDistrictId] = useState<string | null>(
+    null
+  );
 
   const deltaScores = useMemo(
     () => calculateDeltaScores(scoresByYear, yearA, yearB, districtIds),
@@ -70,6 +73,14 @@ export default function TrendPage() {
     []
   );
 
+  const selectedSeries = useMemo(() => {
+    if (!selectedDistrictId) return null;
+    return years.map((entryYear) => ({
+      year: entryYear,
+      value: scoresByYear[entryYear]?.[selectedDistrictId] ?? 0
+    }));
+  }, [selectedDistrictId]);
+
   const average = calculateYearAverage(scoresByYear, activeYear, districtIds);
   const yearOverYear = calculateYearOverYearChange(
     scoresByYear,
@@ -81,6 +92,21 @@ export default function TrendPage() {
   const averageA = calculateYearAverage(scoresByYear, yearA, districtIds);
   const averageB = calculateYearAverage(scoresByYear, yearB, districtIds);
   const deltaAverage = Math.round((averageB - averageA) * 10) / 10;
+
+  const selectedName = selectedDistrictId
+    ? districtNameMap[selectedDistrictId]
+    : null;
+  const selectedScore = selectedDistrictId
+    ? calculateYearAverage(scoresByYear, activeYear, [selectedDistrictId])
+    : null;
+  const selectedYoY = selectedDistrictId
+    ? calculateYearOverYearChange(
+        scoresByYear,
+        years,
+        activeYear,
+        [selectedDistrictId]
+      )
+    : null;
 
   const hoveredDistrict =
     districtList.find((district) => district.id === hoveredId) ?? null;
@@ -114,6 +140,14 @@ export default function TrendPage() {
       }
       return next;
     });
+  };
+
+  const handleSelectDistrict = (id: string) => {
+    setSelectedDistrictId(id);
+  };
+
+  const handleClearDistrict = () => {
+    setSelectedDistrictId(null);
   };
 
   return (
@@ -159,6 +193,7 @@ export default function TrendPage() {
             <TrendMap
               districts={districtList}
               hoveredId={hoveredId}
+              selectedId={selectedDistrictId}
               getFillColor={(id) =>
                 compareMode ? getDeltaColor(mapValues[id]) : getRiskColor(mapValues[id])
               }
@@ -171,6 +206,7 @@ export default function TrendPage() {
                 return `${name} ${activeYear} 위험도 ${formatScore(value)}`;
               }}
               onHover={handleHover}
+              onSelect={handleSelectDistrict}
             />
           </div>
         </section>
@@ -191,6 +227,55 @@ export default function TrendPage() {
             onChangeA={setYearA}
             onChangeB={setYearB}
           />
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white/70">지역 선택</p>
+                <p className="text-xs text-white/40">
+                  선택 시 아래 차트가 해당 구 기준으로 바뀝니다.
+                </p>
+              </div>
+              {selectedDistrictId && (
+                <button
+                  type="button"
+                  onClick={handleClearDistrict}
+                  className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-widest text-white/60 transition hover:text-white"
+                >
+                  해제
+                </button>
+              )}
+            </div>
+            <select
+              value={selectedDistrictId ?? ''}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+                if (!nextValue) {
+                  handleClearDistrict();
+                  return;
+                }
+                handleSelectDistrict(nextValue);
+              }}
+              className="mt-3 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+            >
+              <option value="">서울 전체 평균</option>
+              {districtList.map((district) => (
+                <option key={district.id} value={district.id}>
+                  {district.nameKo}
+                </option>
+              ))}
+            </select>
+            {selectedName && (
+              <div className="mt-3 flex items-center justify-between text-xs text-white/55">
+                <span>{selectedName} 현재 점수</span>
+                <span>
+                  {selectedScore === null ? '--' : Math.round(selectedScore)}점
+                  {selectedYoY === null
+                    ? ''
+                    : ` · Δ ${formatDelta(selectedYoY)}`}
+                </span>
+              </div>
+            )}
+          </div>
           <SummaryCards
             compareMode={compareMode}
             year={activeYear}
@@ -203,9 +288,14 @@ export default function TrendPage() {
             deltaAverage={deltaAverage}
           />
           <TrendLineChart
-            points={averageSeries}
+            points={selectedSeries ?? averageSeries}
             selectedYear={compareMode ? yearB : year}
             onSelectYear={handleYearSelect}
+            title={
+              selectedName
+                ? `${selectedName} 위험도 추이`
+                : '서울 평균 위험도 추이'
+            }
           />
         </section>
       </div>

@@ -7,9 +7,11 @@ type HoverPoint = { x: number; y: number };
 type TrendMapProps = {
   districts: Array<Pick<District, 'id' | 'nameKo' | 'svgPath'>>;
   hoveredId: string | null;
+  selectedId?: string | null;
   getFillColor: (id: string) => string;
   getAriaLabel: (id: string) => string;
   onHover: (id: string | null, point?: HoverPoint) => void;
+  onSelect?: (id: string) => void;
 };
 
 const classNames = (...parts: Array<string | false | null | undefined>) =>
@@ -18,9 +20,11 @@ const classNames = (...parts: Array<string | false | null | undefined>) =>
 export default function TrendMap({
   districts,
   hoveredId,
+  selectedId,
   getFillColor,
   getAriaLabel,
-  onHover
+  onHover,
+  onSelect
 }: TrendMapProps) {
   return (
     <div className="map-stage relative mx-auto w-[72vmin] min-w-[240px] max-w-[880px] aspect-square">
@@ -34,6 +38,7 @@ export default function TrendMap({
       >
         {districts.map((district) => {
           const isHovered = hoveredId === district.id;
+          const isSelected = selectedId === district.id;
           return (
             <path
               key={district.id}
@@ -42,7 +47,11 @@ export default function TrendMap({
               tabIndex={0}
               aria-label={getAriaLabel(district.id)}
               vectorEffect="non-scaling-stroke"
-              className={classNames('district-path', isHovered && 'district-hover')}
+              className={classNames(
+                'district-path',
+                isHovered && 'district-hover',
+                isSelected && 'district-selected'
+              )}
               style={{ fill: getFillColor(district.id) }}
               onMouseEnter={(event) =>
                 onHover(district.id, {
@@ -64,6 +73,14 @@ export default function TrendMap({
                 });
               }}
               onBlur={() => onHover(null)}
+              onClick={() => onSelect?.(district.id)}
+              onKeyDown={(event) => {
+                if (!onSelect) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelect(district.id);
+                }
+              }}
             />
           );
         })}

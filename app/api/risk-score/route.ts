@@ -63,13 +63,29 @@ const toNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const getLatestJsonFile = async (dir: string) => {
+const getJsonFiles = async (dir: string) => {
   const files = (await fs.readdir(dir))
     .filter((name) => name.endsWith('.json'))
     .sort();
-  if (files.length === 0) return null;
-  const latest = files[files.length - 1];
-  return { fileName: latest, filePath: path.join(dir, latest) };
+  return files.map((fileName) => ({
+    fileName,
+    filePath: path.join(dir, fileName)
+  }));
+};
+
+const createTotalsMap = () =>
+  Object.fromEntries(districts.map((district) => [district.id, 0])) as Record<
+    string,
+    number
+  >;
+
+const mergeTotals = (
+  target: Record<string, number>,
+  source: Record<string, number>
+) => {
+  Object.entries(source).forEach(([id, value]) => {
+    target[id] = (target[id] ?? 0) + value;
+  });
 };
 
 const computeTotals = (rows: CrimeRow[], keyMap: Record<string, string>) => {
@@ -131,7 +147,7 @@ const computeBaseScores = (
 };
 
 const buildPrompt = (dataset: DistrictScore[]) => {
-  return `당신은 데이터 분석가입니다. 아래 3개 데이터셋을 종합하여 서울 각 구의 위험도 점수(riskScore, 0~100)를 산출하세요.
+  return `당신은 데이터 분석가입니다. 아래 3개 데이터셋(모든 연도/파일 누적 합계)을 종합하여 서울 각 구의 위험도 점수(riskScore, 0~100)를 산출하세요.
 
 규칙:
 - crimeTotal, fiveTotal, policeTotal이 높을수록 riskScore가 높아야 합니다(단조 증가).
@@ -200,57 +216,49 @@ export async function GET(request: NextRequest) {
   }
 
   const crimeDir = path.join(process.cwd(), 'data', 'crime');
-  const crimeFile = await getLatestJsonFile(crimeDir);
-  if (!crimeFile) {
+  const crimeFiles = await getJsonFiles(crimeDir);
+  if (crimeFiles.length === 0) {
     return NextResponse.json(
       { error: 'No crime data files found' },
       { status: 404, headers: noStoreHeaders }
     );
   }
 
-  const crimeRaw = await fs.readFile(crimeFile.filePath, 'utf8');
-  const crimeRows = JSON.parse(crimeRaw) as CrimeRow[];
-
   const keyMap = buildSeoulKeyMap();
-  const crimeTotals = computeTotals(crimeRows, keyMap);
+  const crimeTotals = createTotalsMap();
+  for (const file of crimeFiles) {
+    const crimeRaw = await fs.readFile(file.filePath, 'utf8');
+    const crimeRows = JSON.parse(crimeRaw) as CrimeRow[];
+    const totals = computeTotals(crimeRows, keyMap);
+    mergeTotals(crimeTotals, totals);
+  }
 
   const fiveDir = path.join(process.cwd(), 'data', 'five');
-  const fiveFile = await getLatestJsonFile(fiveDir);
-  const fiveTotals: Record<string, number> = Object.fromEntries(
-    districts.map((district) => [district.id, 0])
-  );
-  if (fiveFile) {
-    const fiveRaw = await fs.readFile(fiveFile.filePath, 'utf8');
-    const fiveRows = JSON.parse(fiveRaw) as Record<string, string | number>[];
+  const fiveFiles = await getJsonFiles(fiveDir);
+  const fiveTotals = createTotalsMap();
+  if (fiveFiles.length > 0) {
     const districtNameMap = buildDistrictNameMap();
-    const sampleKeys = Object.keys(fiveRows[0] ?? {});
-    const yearCandidates = sampleKeys
-      .map((key) => key.match(/^(\d{4})(?:\.\d+)?$/)?.[1])
-      .filter(Boolean)
-      .map((value) => Number(value));
-    const latestYear =
-      yearCandidates.length > 0 ? Math.max(...yearCandidates) : null;
-    const targetKey = latestYear ? String(latestYear) : null;
-
-    if (targetKey) {
+    for (const file of fiveFiles) {
+      const fiveRaw = await fs.readFile(file.filePath, 'utf8');
+      const fiveRows = JSON.parse(fiveRaw) as Record<string, string | number>[];
       fiveRows.forEach((row) => {
+        if (row['자치구별(1)'] !== '합계') return;
         const name = row['자치구별(2)'];
         if (typeof name !== 'string') return;
         const id = districtNameMap[name];
         if (!id) return;
-        fiveTotals[id] = toNumber(row[targetKey]);
+        Object.entries(row).forEach(([key, value]) => {
+          if (!/^\d{4}$/.test(key)) return;
+          fiveTotals[id] += toNumber(value);
+        });
       });
     }
   }
 
   const policeDir = path.join(process.cwd(), 'data', 'policestation');
-  const policeFile = await getLatestJsonFile(policeDir);
-  const policeTotals: Record<string, number> = Object.fromEntries(
-    districts.map((district) => [district.id, 0])
-  );
-  if (policeFile) {
-    const policeRaw = await fs.readFile(policeFile.filePath, 'utf8');
-    const policeRows = JSON.parse(policeRaw) as PoliceRow[];
+  const policeFiles = await getJsonFiles(policeDir);
+  const policeTotals = createTotalsMap();
+  if (policeFiles.length > 0) {
     const districtTokens = districts
       .map((district) => ({
         token: district.nameKo.replace('구', ''),
@@ -268,25 +276,29 @@ export async function GET(request: NextRequest) {
       서울수서서: 'gangnam'
     };
 
-    policeRows.forEach((row) => {
-      const station = typeof row.경찰서 === 'string' ? row.경찰서 : '';
-      if (!station.startsWith('서울')) return;
-      const overrideId = stationOverrides[station];
-      let id = overrideId ?? null;
-      if (!id) {
-        const match = districtTokens.find((item) =>
-          station.includes(item.token)
-        );
-        id = match?.id ?? null;
-      }
-      if (!id) return;
-      const total =
-        toNumber(row.살인) +
-        toNumber(row.강도) +
-        toNumber(row.절도) +
-        toNumber(row.폭력);
-      policeTotals[id] += total;
-    });
+    for (const file of policeFiles) {
+      const policeRaw = await fs.readFile(file.filePath, 'utf8');
+      const policeRows = JSON.parse(policeRaw) as PoliceRow[];
+      policeRows.forEach((row) => {
+        const station = typeof row.경찰서 === 'string' ? row.경찰서 : '';
+        if (!station.startsWith('서울')) return;
+        const overrideId = stationOverrides[station];
+        let id = overrideId ?? null;
+        if (!id) {
+          const match = districtTokens.find((item) =>
+            station.includes(item.token)
+          );
+          id = match?.id ?? null;
+        }
+        if (!id) return;
+        const total =
+          toNumber(row.살인) +
+          toNumber(row.강도) +
+          toNumber(row.절도) +
+          toNumber(row.폭력);
+        policeTotals[id] += total;
+      });
+    }
   }
 
   const baseScores = computeBaseScores(
@@ -326,9 +338,9 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json({
       sources: {
-        crime: crimeFile.fileName,
-        five: fiveFile?.fileName ?? null,
-        policestation: policeFile?.fileName ?? null
+        crime: crimeFiles.map((file) => file.fileName),
+        five: fiveFiles.map((file) => file.fileName),
+        policestation: policeFiles.map((file) => file.fileName)
       },
       scores: fallback,
       fallback: true,
@@ -353,9 +365,9 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json({
       sources: {
-        crime: crimeFile.fileName,
-        five: fiveFile?.fileName ?? null,
-        policestation: policeFile?.fileName ?? null
+        crime: crimeFiles.map((file) => file.fileName),
+        five: fiveFiles.map((file) => file.fileName),
+        policestation: policeFiles.map((file) => file.fileName)
       },
       scores: fallback,
       fallback: true,
@@ -370,9 +382,9 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     sources: {
-      crime: crimeFile.fileName,
-      five: fiveFile?.fileName ?? null,
-      policestation: policeFile?.fileName ?? null
+      crime: crimeFiles.map((file) => file.fileName),
+      five: fiveFiles.map((file) => file.fileName),
+      policestation: policeFiles.map((file) => file.fileName)
     },
     scores: parsed,
     fallback: false,
