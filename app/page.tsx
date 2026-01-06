@@ -11,6 +11,7 @@ import { createAudioEngine, AudioEngine } from '@/lib/audioEngine';
 type HoverPoint = { x: number; y: number };
 
 export default function Home() {
+  const [districtData, setDistrictData] = useState(districts);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lockSelection, setLockSelection] = useState(false);
@@ -28,18 +29,43 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    const fetchScores = async () => {
+      try {
+        const response = await fetch('/api/risk-score', { cache: 'no-store' });
+        if (!response.ok) return;
+        const payload = await response.json();
+        if (!payload?.scores || cancelled) return;
+
+        setDistrictData((prev) =>
+          prev.map((district) => ({
+            ...district,
+            riskScore: payload.scores[district.id] ?? district.riskScore
+          }))
+        );
+      } catch {
+        // Ignore fetch failures for local testing.
+      }
+    };
+    fetchScores();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => setShowHint(false), 3000);
     return () => window.clearTimeout(timer);
   }, []);
 
   const hoveredDistrict = useMemo(
-    () => districts.find((district) => district.id === hoveredId) ?? null,
-    [hoveredId]
+    () => districtData.find((district) => district.id === hoveredId) ?? null,
+    [hoveredId, districtData]
   );
 
   const selectedDistrict = useMemo(
-    () => districts.find((district) => district.id === selectedId) ?? null,
-    [selectedId]
+    () => districtData.find((district) => district.id === selectedId) ?? null,
+    [selectedId, districtData]
   );
 
   const audioDistrict = useMemo(() => {
@@ -129,7 +155,7 @@ export default function Home() {
           구를 가리키면 소리가 변합니다
         </div>
         <SeoulMap
-          districts={districts}
+          districts={districtData}
           hoveredId={hoveredId}
           selectedId={selectedId}
           onHover={handleHover}
