@@ -23,6 +23,10 @@ const MID_LIGHT: RGB = { r: 110, g: 138, b: 130 };
 const HIGH_BASE: RGB = { r: 126, g: 76, b: 92 };
 const HIGH_LIGHT: RGB = { r: 150, g: 94, b: 112 };
 
+const DELTA_NEUTRAL: RGB = { r: 90, g: 98, b: 106 };
+const DELTA_COOL: RGB = { r: 84, g: 122, b: 138 };
+const DELTA_WARM: RGB = { r: 156, g: 112, b: 96 };
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
 
@@ -84,4 +88,17 @@ export const getRiskColor = (score: number | null | undefined) => {
   }
   const t = (safe - 66) / 34;
   return mixColor(HIGH_BASE, HIGH_LIGHT, 0.25 + t * 0.5);
+};
+
+export const getDeltaColor = (delta: number | null | undefined) => {
+  if (delta === null || delta === undefined) {
+    return `rgb(${DELTA_NEUTRAL.r}, ${DELTA_NEUTRAL.g}, ${DELTA_NEUTRAL.b})`;
+  }
+  const safe = clamp(delta, -20, 20);
+  if (Math.abs(safe) < 2) {
+    return `rgb(${DELTA_NEUTRAL.r}, ${DELTA_NEUTRAL.g}, ${DELTA_NEUTRAL.b})`;
+  }
+  const t = Math.min(1, Math.abs(safe) / 20);
+  const target = safe < 0 ? DELTA_COOL : DELTA_WARM;
+  return mixColor(DELTA_NEUTRAL, target, 0.3 + t * 0.6);
 };

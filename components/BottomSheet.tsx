@@ -140,8 +140,8 @@ export default function BottomSheet({
 
         {detailsOpen && (
           <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-            이 구의 위험도 점수는 data/crime에 넣은 실제 JSON 데이터를 기반으로 산출됩니다.
-            프롬프트 로직으로 점수를 계산하며, API 호출이 실패하면 기본 점수로 대체됩니다.
+            이 구의 위험도 점수는 data/crime, data/five, data/policestation에 넣은 실제 JSON 데이터를 기반으로
+            산출됩니다. 프롬프트 로직으로 점수를 계산하며, API 호출이 실패하면 기본 점수로 대체됩니다.
           </div>
         )}
       </section>
