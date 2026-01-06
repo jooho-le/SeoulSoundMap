@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { districts } from '@/data/districts';
 import SeoulMap from '@/components/SeoulMap';
 import TopStatus from '@/components/TopStatus';
@@ -139,6 +140,14 @@ export default function Home() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
+      <header className="absolute left-1/2 top-6 z-10 -translate-x-1/2">
+        <Link
+          href="/trend"
+          className="rounded-full border border-white/10 bg-black/40 px-4 py-2 text-xs text-white/70 transition hover:border-white/30 hover:text-white"
+        >
+          과거부터 현재까지 서울의 위험점수변화 보기
+        </Link>
+      </header>
       <TopStatus
         district={audioDistrict}
         pulseActive={pulseActive}
