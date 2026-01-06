@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { districts } from '@/data/districts';
 import SeoulMap from '@/components/SeoulMap';
-import InfoPanel from '@/components/InfoPanel';
+import TopStatus from '@/components/TopStatus';
+import HoverTooltip from '@/components/HoverTooltip';
+import BottomSheet from '@/components/BottomSheet';
 import { createAudioEngine, AudioEngine } from '@/lib/audioEngine';
+
+type HoverPoint = { x: number; y: number };
 
 export default function Home() {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -12,6 +16,8 @@ export default function Home() {
   const [lockSelection, setLockSelection] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(false);
   const [audioReady, setAudioReady] = useState(false);
+  const [tooltipPoint, setTooltipPoint] = useState<HoverPoint | null>(null);
+  const [showHint, setShowHint] = useState(true);
   const audioRef = useRef<AudioEngine | null>(null);
 
   useEffect(() => {
@@ -19,6 +25,11 @@ export default function Home() {
     return () => {
       audioRef.current?.dispose();
     };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowHint(false), 3000);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const hoveredDistrict = useMemo(
@@ -31,15 +42,21 @@ export default function Home() {
     [selectedId]
   );
 
-  const activeDistrict = useMemo(() => {
+  const audioDistrict = useMemo(() => {
     if (lockSelection && selectedDistrict) return selectedDistrict;
     return hoveredDistrict ?? selectedDistrict;
   }, [hoveredDistrict, selectedDistrict, lockSelection]);
 
+  const pulseIntensity =
+    hoveredDistrict && hoveredDistrict.riskScore !== null
+      ? hoveredDistrict.riskScore / 100
+      : 0.35;
+  const pulseActive = Boolean(hoveredDistrict);
+
   useEffect(() => {
-    if (!audioEnabled || !activeDistrict) return;
-    audioRef.current?.setRisk(activeDistrict.riskScore);
-  }, [audioEnabled, activeDistrict]);
+    if (!audioEnabled || !audioDistrict) return;
+    audioRef.current?.setRisk(audioDistrict.riskScore);
+  }, [audioEnabled, audioDistrict]);
 
   const handleToggleAudio = () => {
     const engine = audioRef.current;
@@ -55,13 +72,14 @@ export default function Home() {
     setAudioEnabled(nextEnabled);
     engine.setEnabled(nextEnabled);
 
-    if (nextEnabled && activeDistrict) {
-      engine.setRisk(activeDistrict.riskScore);
+    if (nextEnabled && audioDistrict) {
+      engine.setRisk(audioDistrict.riskScore);
     }
   };
 
   const handleSelect = (id: string) => {
     setSelectedId((prev) => (prev === id ? null : id));
+    setShowHint(false);
   };
 
   const handleToggleLock = () => {
@@ -74,33 +92,66 @@ export default function Home() {
     });
   };
 
+  const handleHover = (id: string | null, point?: HoverPoint) => {
+    setHoveredId(id);
+    if (id) {
+      setShowHint(false);
+    }
+    if (!id) {
+      setTooltipPoint(null);
+      return;
+    }
+    if (point) {
+      setTooltipPoint(point);
+    }
+  };
+
+  const handleCloseSheet = () => {
+    setSelectedId(null);
+    setLockSelection(false);
+  };
+
   return (
-    <main className="relative flex min-h-screen flex-col overflow-hidden">
-      <div className="absolute left-6 top-6 z-10 max-w-xs rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.3em] text-white/70">
-        Seoul Sound Map
+    <main className="relative min-h-screen overflow-hidden">
+      <TopStatus
+        district={audioDistrict}
+        pulseActive={pulseActive}
+        pulseIntensity={pulseIntensity}
+      />
+
+      <div className="relative flex min-h-screen items-center justify-center px-6 py-16">
+        <div
+          className={`pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5 bg-black/20 px-4 py-2 text-xs text-white/55 backdrop-blur-sm transition-opacity duration-500 ${
+            showHint ? 'opacity-70' : 'opacity-0'
+          }`}
+          aria-hidden={!showHint}
+        >
+          구를 가리키면 소리가 변합니다
+        </div>
+        <SeoulMap
+          districts={districts}
+          hoveredId={hoveredId}
+          selectedId={selectedId}
+          onHover={handleHover}
+          onSelect={handleSelect}
+        />
+        <HoverTooltip
+          district={hoveredDistrict}
+          position={tooltipPoint}
+          visible={Boolean(hoveredDistrict)}
+        />
       </div>
 
-      <div className="relative flex flex-1 items-stretch">
-        <div className="flex-1 animate-map-reveal p-6 flex items-center justify-center">
-          <SeoulMap
-            districts={districts}
-            hoveredId={hoveredId}
-            selectedId={selectedId}
-            onHover={setHoveredId}
-            onSelect={handleSelect}
-          />
-        </div>
-
-        <div className="pointer-events-none absolute bottom-6 left-6 z-10">
-          <InfoPanel
-            district={activeDistrict}
-            audioEnabled={audioEnabled}
-            onToggleAudio={handleToggleAudio}
-            lockSelection={lockSelection}
-            onToggleLock={handleToggleLock}
-          />
-        </div>
-      </div>
+      {selectedDistrict && (
+        <BottomSheet
+          district={selectedDistrict}
+          audioEnabled={audioEnabled}
+          lockSelection={lockSelection}
+          onToggleAudio={handleToggleAudio}
+          onToggleLock={handleToggleLock}
+          onClose={handleCloseSheet}
+        />
+      )}
     </main>
   );
 }
