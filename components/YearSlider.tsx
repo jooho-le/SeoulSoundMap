@@ -5,20 +5,26 @@ type YearSliderProps = {
   value: number;
   label?: string;
   onChange: (year: number) => void;
+  frame?: boolean;
+  className?: string;
 };
 
 export default function YearSlider({
   years,
   value,
   label = '연도 선택',
-  onChange
+  onChange,
+  frame = true,
+  className
 }: YearSliderProps) {
   const index = Math.max(0, years.indexOf(value));
 
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+  const content = (
+    <>
       <div className="flex items-center justify-between text-sm text-white/70">
-        <span>{label}</span>
+        <span className="text-xs uppercase tracking-[0.24em] text-white/45">
+          {label}
+        </span>
         <span className="text-base font-semibold text-white">{value}</span>
       </div>
       <input
@@ -39,6 +45,16 @@ export default function YearSlider({
         <span>{years[0]}</span>
         <span>{years[years.length - 1]}</span>
       </div>
+    </>
+  );
+
+  if (!frame) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <div className={`trend-card p-4 ${className ?? ''}`.trim()}>
+      {content}
     </div>
   );
 }
