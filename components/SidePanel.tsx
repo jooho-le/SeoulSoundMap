@@ -201,32 +201,34 @@ export default function SidePanel({
           </div>
 
           {detailsOpen && (
-            <div className="panel-section mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-              <p className="text-xs uppercase tracking-[0.3em] text-white/45">
+            <div className="panel-section mt-5 rounded-3xl border border-white/15 bg-gradient-to-br from-white/12 via-white/5 to-black/40 p-5 text-sm text-white/75 shadow-[0_20px_55px_rgba(0,0,0,0.45)] backdrop-blur-md">
+              <p className="text-[12px] uppercase tracking-[0.35em] text-white/50">
                 근거
               </p>
-              <p className="mt-2 text-sm text-white/75">
+              <p className="mt-3 text-base leading-relaxed text-white/85">
                 이 점수는 최근 신고·범죄 기록, 5대 범죄 지표, 경찰서 발생 통계를
                 모아 체감되는 위험감을 표현한 값입니다.
               </p>
-              <p className="mt-2 text-sm text-white/75">{breakdownNarrative}</p>
+              <p className="mt-3 text-base leading-relaxed text-white/80">
+                {breakdownNarrative}
+              </p>
               {breakdownItems.length > 0 && (
-                <div className="mt-4 space-y-3 text-xs text-white/70">
+                <div className="mt-5 space-y-4 text-sm text-white/80">
                   {breakdownItems.map((item) => (
                     <div key={item.key} className="flex items-center gap-3">
-                      <span className="w-24 text-[11px] text-white/55">
+                      <span className="w-28 text-[12px] text-white/60">
                         {item.label}
                       </span>
-                      <div className="relative h-2 flex-1 rounded-full bg-white/10">
+                      <div className="relative h-3 flex-1 rounded-full bg-white/10 shadow-[inset_0_1px_2px_rgba(0,0,0,0.45)]">
                         <div
-                          className="h-2 rounded-full"
+                          className="h-3 rounded-full shadow-[0_6px_16px_rgba(0,0,0,0.45)]"
                           style={{
                             width: `${item.value}%`,
                             backgroundColor: item.color
                           }}
                         />
                       </div>
-                      <span className="w-10 text-right text-[11px] text-white/60">
+                      <span className="w-10 text-right text-[12px] text-white/65">
                         {item.value}%
                       </span>
                     </div>
