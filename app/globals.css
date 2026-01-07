@@ -516,6 +516,150 @@ main {
   color: rgba(255, 255, 255, 0.5);
 }
 
+.compare-grid {
+  margin-top: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.compare-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.compare-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.compare-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.compare-list .delta {
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-list .delta.up {
+  color: rgba(255, 196, 150, 0.9);
+}
+
+.compare-list .delta.down {
+  color: rgba(164, 200, 215, 0.9);
+}
+
+.stacked-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.stacked-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 20px;
+}
+
+.stacked-bar {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 60px;
+  width: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stacked-segment {
+  display: block;
+  width: 100%;
+}
+
+.stacked-segment.crime {
+  background: rgba(255, 197, 140, 0.9);
+}
+
+.stacked-segment.five {
+  background: rgba(148, 202, 190, 0.9);
+}
+
+.stacked-segment.police {
+  background: rgba(164, 182, 210, 0.9);
+}
+
+.stacked-year {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.stacked-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.stacked-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.stacked-legend .crime::before {
+  background: rgba(255, 197, 140, 0.9);
+}
+
+.stacked-legend .five::before {
+  background: rgba(148, 202, 190, 0.9);
+}
+
+.stacked-legend .police::before {
+  background: rgba(164, 182, 210, 0.9);
+}
+
+@keyframes trend-pulse {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.35));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+  }
+}
+
+.trend-highlight-up {
+  stroke: rgba(255, 196, 150, 0.85);
+  stroke-width: 2;
+  animation: trend-pulse 1.6s ease-in-out infinite;
+}
+
+.trend-highlight-down {
+  stroke: rgba(164, 200, 215, 0.85);
+  stroke-width: 2;
+  animation: trend-pulse 1.6s ease-in-out infinite;
+}
+
 @media (max-width: 1024px) {
   .editorial-panel {
     max-width: none;

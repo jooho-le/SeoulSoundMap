@@ -2,7 +2,14 @@ export type District = {
   id: string;
   nameKo: string;
   riskScore: number | null;
+  breakdown?: DistrictBreakdown | null;
   svgPath: string;
+};
+
+export type DistrictBreakdown = {
+  crime: number;
+  five: number;
+  police: number;
 };
 
 export const districts: District[] = [

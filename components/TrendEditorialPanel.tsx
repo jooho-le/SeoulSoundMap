@@ -23,6 +23,9 @@ type TrendEditorialPanelProps = {
   selectedScore: number | null;
   selectedYoY: number | null;
   series: TrendPoint[];
+  componentSeries: Array<{ year: number; crime: number; five: number; police: number }> | null;
+  topIncrease: Array<{ id: string; nameKo: string; delta: number }>;
+  topDecrease: Array<{ id: string; nameKo: string; delta: number }>;
   districts: Array<{ id: string; nameKo: string }>;
   onYearChange: (year: number) => void;
   onToggleCompare: () => void;
@@ -137,6 +140,9 @@ export default function TrendEditorialPanel({
   selectedScore,
   selectedYoY,
   series,
+  componentSeries,
+  topIncrease,
+  topDecrease,
   districts,
   onYearChange,
   onToggleCompare,
@@ -176,6 +182,16 @@ export default function TrendEditorialPanel({
   }, [selectedName, selectedScore, selectedYoY]);
 
   const summaryKey = `${activeYear}-${compareMode}-${selectedDistrictId ?? 'all'}`;
+
+  const stackedBars = componentSeries?.map((item) => {
+    const total = item.crime + item.five + item.police || 1;
+    return {
+      year: item.year,
+      crime: (item.crime / total) * 100,
+      five: (item.five / total) * 100,
+      police: (item.police / total) * 100
+    };
+  });
 
   return (
     <aside className="editorial-panel panel-divider">
@@ -223,6 +239,34 @@ export default function TrendEditorialPanel({
         />
       </div>
 
+      {selectedName && (
+        <div className="editorial-block">
+          <p className="eyebrow">지역의 흐름</p>
+          <p className="editorial-body">
+            {selectedName}의 연도별 점수 변화와 구성 비율입니다.
+          </p>
+          {stackedBars && (
+            <div className="stacked-chart">
+              {stackedBars.map((item) => (
+                <div key={item.year} className="stacked-col">
+                  <div className="stacked-bar">
+                    <span style={{ height: `${item.crime}%` }} className="stacked-segment crime" />
+                    <span style={{ height: `${item.five}%` }} className="stacked-segment five" />
+                    <span style={{ height: `${item.police}%` }} className="stacked-segment police" />
+                  </div>
+                  <span className="stacked-year">{item.year}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="stacked-legend">
+            <span className="crime">crime</span>
+            <span className="five">five</span>
+            <span className="police">police</span>
+          </div>
+        </div>
+      )}
+
       <div className="editorial-block">
         <details className="collapsible" open={compareMode}>
           <summary className="collapsible-title">비교하기(선택)</summary>
@@ -268,6 +312,36 @@ export default function TrendEditorialPanel({
                 </label>
                 <div className="compare-note">
                   평균 기준: {averageA.toFixed(1)} → {averageB.toFixed(1)}
+                </div>
+              </div>
+            )}
+            {compareMode && (
+              <div className="compare-grid">
+                <div>
+                  <p className="compare-title">상위 상승 Top5</p>
+                  <ul className="compare-list">
+                    {topIncrease.map((item) => (
+                      <li key={item.id}>
+                        <span>{item.nameKo}</span>
+                        <span className="delta up">
+                          {formatDelta(item.delta)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="compare-title">상위 하락 Top5</p>
+                  <ul className="compare-list">
+                    {topDecrease.map((item) => (
+                      <li key={item.id}>
+                        <span>{item.nameKo}</span>
+                        <span className="delta down">
+                          {formatDelta(item.delta)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             )}

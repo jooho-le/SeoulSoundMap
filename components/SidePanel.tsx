@@ -1,8 +1,38 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { District } from '@/data/districts';
+import { District, DistrictBreakdown } from '@/data/districts';
 import { getRiskColor, getRiskMeta } from '@/lib/risk';
+
+const breakdownColors = {
+  crime: 'rgba(122, 170, 190, 0.9)',
+  five: 'rgba(120, 150, 135, 0.9)',
+  police: 'rgba(168, 128, 118, 0.9)'
+};
+
+const getBreakdownNarrative = (breakdown?: DistrictBreakdown | null) => {
+  if (!breakdown) {
+    return '근거 데이터를 불러오는 중입니다.';
+  }
+  const entries = [
+    { key: 'crime', value: breakdown.crime },
+    { key: 'five', value: breakdown.five },
+    { key: 'police', value: breakdown.police }
+  ];
+  const sorted = [...entries].sort((a, b) => b.value - a.value);
+  const top = sorted[0];
+  const gap = top.value - (sorted[1]?.value ?? 0);
+  if (gap < 8) {
+    return '세 지표가 비슷하게 섞여 체감 점수가 만들어집니다.';
+  }
+  if (top.key === 'crime') {
+    return '최근 신고·범죄 기록의 영향이 가장 크게 느껴집니다.';
+  }
+  if (top.key === 'five') {
+    return '5대 범죄 지표가 두드러져 점수에 힘을 더합니다.';
+  }
+  return '경찰서 발생 통계가 상대적으로 높게 반영되었습니다.';
+};
 
 type SidePanelProps = {
   hoveredDistrict: District | null;
@@ -72,6 +102,30 @@ export default function SidePanel({
   const currentLabel = currentMeta.label ? ` · ${currentMeta.label}` : '';
   const selectedLabel = selectedMeta.label ? ` · ${selectedMeta.label}` : '';
   const scoreColor = getRiskColor(selectedDistrict?.riskScore);
+  const breakdown = selectedDistrict?.breakdown ?? null;
+  const breakdownNarrative = getBreakdownNarrative(breakdown);
+  const breakdownItems = breakdown
+    ? [
+        {
+          key: 'crime',
+          label: '신고·범죄 기록',
+          value: breakdown.crime,
+          color: breakdownColors.crime
+        },
+        {
+          key: 'five',
+          label: '5대 범죄',
+          value: breakdown.five,
+          color: breakdownColors.five
+        },
+        {
+          key: 'police',
+          label: '경찰서 발생',
+          value: breakdown.police,
+          color: breakdownColors.police
+        }
+      ]
+    : [];
 
   return (
     <aside className="panel-section flex h-full w-full flex-col rounded-[28px] border border-white/10 bg-black/40 p-5 text-white shadow-[0_18px_45px_rgba(0,0,0,0.35)] backdrop-blur-md lg:h-[78vh] lg:max-h-[760px]">
@@ -142,15 +196,43 @@ export default function SidePanel({
               onClick={() => setDetailsOpen((prev) => !prev)}
               className="rounded-full border border-white/10 px-4 py-2 text-xs uppercase tracking-widest text-white/60 transition hover:text-white"
             >
-              데이터 보기
+              근거 보기
             </button>
           </div>
 
           {detailsOpen && (
             <div className="panel-section mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/70">
-              이 구의 위험도 점수는 data/crime, data/five, data/policestation에
-              넣은 실제 JSON 데이터를 기반으로 산출됩니다. 프롬프트 로직으로 점수를
-              계산하며, API 호출이 실패하면 기본 점수로 대체됩니다.
+              <p className="text-xs uppercase tracking-[0.3em] text-white/45">
+                근거
+              </p>
+              <p className="mt-2 text-sm text-white/75">
+                이 점수는 최근 신고·범죄 기록, 5대 범죄 지표, 경찰서 발생 통계를
+                모아 체감되는 위험감을 표현한 값입니다.
+              </p>
+              <p className="mt-2 text-sm text-white/75">{breakdownNarrative}</p>
+              {breakdownItems.length > 0 && (
+                <div className="mt-4 space-y-3 text-xs text-white/70">
+                  {breakdownItems.map((item) => (
+                    <div key={item.key} className="flex items-center gap-3">
+                      <span className="w-24 text-[11px] text-white/55">
+                        {item.label}
+                      </span>
+                      <div className="relative h-2 flex-1 rounded-full bg-white/10">
+                        <div
+                          className="h-2 rounded-full"
+                          style={{
+                            width: `${item.value}%`,
+                            backgroundColor: item.color
+                          }}
+                        />
+                      </div>
+                      <span className="w-10 text-right text-[11px] text-white/60">
+                        {item.value}%
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

@@ -8,6 +8,8 @@ type TrendMapProps = {
   districts: Array<Pick<District, 'id' | 'nameKo' | 'svgPath'>>;
   hoveredId: string | null;
   selectedId?: string | null;
+  highlightUpIds?: Set<string>;
+  highlightDownIds?: Set<string>;
   getFillColor: (id: string) => string;
   getAriaLabel: (id: string) => string;
   onHover: (id: string | null, point?: HoverPoint) => void;
@@ -21,6 +23,8 @@ export default function TrendMap({
   districts,
   hoveredId,
   selectedId,
+  highlightUpIds,
+  highlightDownIds,
   getFillColor,
   getAriaLabel,
   onHover,
@@ -39,6 +43,8 @@ export default function TrendMap({
         {districts.map((district) => {
           const isHovered = hoveredId === district.id;
           const isSelected = selectedId === district.id;
+          const isUp = highlightUpIds?.has(district.id);
+          const isDown = highlightDownIds?.has(district.id);
           return (
             <path
               key={district.id}
@@ -50,7 +56,9 @@ export default function TrendMap({
               className={classNames(
                 'district-path',
                 isHovered && 'district-hover',
-                isSelected && 'district-selected'
+                isSelected && 'district-selected',
+                isUp && 'trend-highlight-up',
+                isDown && 'trend-highlight-down'
               )}
               style={{ fill: getFillColor(district.id) }}
               onMouseEnter={(event) =>
