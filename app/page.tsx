@@ -39,7 +39,9 @@ export default function Home() {
         setDistrictData((prev) =>
           prev.map((district) => ({
             ...district,
-            riskScore: payload.scores[district.id] ?? district.riskScore
+            riskScore: payload.scores[district.id] ?? district.riskScore,
+            breakdown:
+              payload.breakdown?.[district.id] ?? district.breakdown ?? null
           }))
         );
       } catch {

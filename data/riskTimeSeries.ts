@@ -95,3 +95,44 @@ export const scoresByYear: Record<number, Record<string, number>> =
       return [year, scores];
     })
   );
+
+const componentWeights = {
+  crime: 0.45,
+  five: 0.35,
+  police: 0.2
+};
+
+const weightSetFor = (id: string, year: number) => {
+  let hash = year;
+  for (let i = 0; i < id.length; i += 1) {
+    hash = (hash * 33 + id.charCodeAt(i)) >>> 0;
+  }
+  const jitter = ((hash % 7) - 3) * 0.01;
+  const crime = clamp(componentWeights.crime + jitter, 0.3, 0.6);
+  const five = clamp(componentWeights.five - jitter * 0.6, 0.2, 0.5);
+  const police = clamp(1 - crime - five, 0.12, 0.3);
+  const total = crime + five + police;
+  return {
+    crime: crime / total,
+    five: five / total,
+    police: police / total
+  };
+};
+
+export const componentsByYear: Record<
+  number,
+  Record<string, { crime: number; five: number; police: number }>
+> = Object.fromEntries(
+  years.map((year) => {
+    const components: Record<string, { crime: number; five: number; police: number }> = {};
+    districts.forEach((district) => {
+      const total = scoresByYear[year][district.id] ?? 0;
+      const weights = weightSetFor(district.id, year);
+      const crime = Math.round(total * weights.crime);
+      const five = Math.round(total * weights.five);
+      const police = Math.max(0, total - crime - five);
+      components[district.id] = { crime, five, police };
+    });
+    return [year, components];
+  })
+);

@@ -11,12 +11,19 @@ type CrimeRow = Record<string, string | number> & {
   범죄중분류?: string;
 };
 
+type Contribution = {
+  crime: number;
+  five: number;
+  police: number;
+};
+
 type DistrictScore = {
   id: string;
   crimeTotal: number;
   fiveTotal: number;
   policeTotal: number;
   baseScore: number;
+  contributions: Contribution;
 };
 
 type PoliceRow = {
@@ -119,6 +126,24 @@ const normalizeTotals = (totals: Record<string, number>) => {
   return normalized;
 };
 
+const toPercentShare = (weights: number[]) => {
+  const safe = weights.map((value) => (Number.isFinite(value) ? value : 0));
+  const sum = safe.reduce((acc, value) => acc + value, 0);
+  if (sum <= 0) {
+    const base = Math.floor(100 / safe.length);
+    const remainder = 100 - base * safe.length;
+    return safe.map((_, index) => base + (index === 0 ? remainder : 0));
+  }
+  const raw = safe.map((value) => (value / sum) * 100);
+  const rounded = raw.map((value) => Math.round(value));
+  const diff = 100 - rounded.reduce((acc, value) => acc + value, 0);
+  if (diff !== 0) {
+    const maxIndex = safe.indexOf(Math.max(...safe));
+    rounded[maxIndex] += diff;
+  }
+  return rounded;
+};
+
 const computeBaseScores = (
   crimeTotals: Record<string, number>,
   fiveTotals: Record<string, number>,
@@ -130,17 +155,27 @@ const computeBaseScores = (
 
   const scores: Record<string, DistrictScore> = {};
   districts.forEach((district) => {
-    const weighted =
-      crimeNorm[district.id] * DATA_WEIGHTS.crime +
-      fiveNorm[district.id] * DATA_WEIGHTS.five +
-      policeNorm[district.id] * DATA_WEIGHTS.police;
+    const crimeWeight = crimeNorm[district.id] * DATA_WEIGHTS.crime;
+    const fiveWeight = fiveNorm[district.id] * DATA_WEIGHTS.five;
+    const policeWeight = policeNorm[district.id] * DATA_WEIGHTS.police;
+    const weighted = crimeWeight + fiveWeight + policeWeight;
     const baseScore = Math.round(10 + weighted * 80);
+    const [crimeShare, fiveShare, policeShare] = toPercentShare([
+      crimeWeight,
+      fiveWeight,
+      policeWeight
+    ]);
     scores[district.id] = {
       id: district.id,
       crimeTotal: crimeTotals[district.id] ?? 0,
       fiveTotal: fiveTotals[district.id] ?? 0,
       policeTotal: policeTotals[district.id] ?? 0,
-      baseScore
+      baseScore,
+      contributions: {
+        crime: crimeShare,
+        five: fiveShare,
+        police: policeShare
+      }
     };
   });
   return scores;
@@ -309,6 +344,10 @@ export async function GET(request: NextRequest) {
   const dataset = Object.values(baseScores).sort(
     (a, b) => b.baseScore - a.baseScore
   );
+  const breakdown: Record<string, Contribution> = {};
+  Object.values(baseScores).forEach((item) => {
+    breakdown[item.id] = item.contributions;
+  });
 
   const prompt = buildPrompt(dataset);
 
@@ -343,6 +382,7 @@ export async function GET(request: NextRequest) {
         policestation: policeFiles.map((file) => file.fileName)
       },
       scores: fallback,
+      breakdown,
       fallback: true,
       debug: debug
         ? {
@@ -370,6 +410,7 @@ export async function GET(request: NextRequest) {
         policestation: policeFiles.map((file) => file.fileName)
       },
       scores: fallback,
+      breakdown,
       fallback: true,
       debug: debug
         ? {
@@ -387,6 +428,7 @@ export async function GET(request: NextRequest) {
       policestation: policeFiles.map((file) => file.fileName)
     },
     scores: parsed,
+    breakdown,
     fallback: false,
     debug: debug ? { content: content.slice(0, 2000) } : undefined
   }, { headers: noStoreHeaders });

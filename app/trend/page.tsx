@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { districts as baseDistricts } from '@/data/districts';
-import { years, scoresByYear } from '@/data/riskTimeSeries';
+import { componentsByYear, years, scoresByYear } from '@/data/riskTimeSeries';
 import TrendMap from '@/components/TrendMap';
 import TrendEditorialPanel from '@/components/TrendEditorialPanel';
 import {
@@ -78,6 +78,18 @@ export default function TrendPage() {
     }));
   }, [selectedDistrictId]);
 
+  const componentSeries = useMemo(() => {
+    if (!selectedDistrictId) return null;
+    return years.map((entryYear) => ({
+      year: entryYear,
+      ...(componentsByYear[entryYear]?.[selectedDistrictId] ?? {
+        crime: 0,
+        five: 0,
+        police: 0
+      })
+    }));
+  }, [selectedDistrictId]);
+
   const average = calculateYearAverage(scoresByYear, activeYear, districtIds);
   const yearOverYear = calculateYearOverYearChange(
     scoresByYear,
@@ -109,6 +121,22 @@ export default function TrendPage() {
     districtList.find((district) => district.id === hoveredId) ?? null;
   const hoveredValue =
     hoveredId === null ? undefined : mapValues[hoveredId] ?? undefined;
+
+  const deltaList = useMemo(() => {
+    if (!compareMode) return null;
+    return districtList
+      .map((district) => ({
+        id: district.id,
+        nameKo: district.nameKo,
+        delta: deltaScores[district.id] ?? 0
+      }))
+      .sort((a, b) => b.delta - a.delta);
+  }, [compareMode, deltaScores]);
+
+  const topIncrease = deltaList ? deltaList.slice(0, 5) : [];
+  const topDecrease = deltaList ? [...deltaList].reverse().slice(0, 5) : [];
+  const highlightUpIds = new Set(topIncrease.map((item) => item.id));
+  const highlightDownIds = new Set(topDecrease.map((item) => item.id));
 
   const handleHover = (id: string | null, point?: HoverPoint) => {
     setHoveredId(id);
@@ -188,6 +216,8 @@ export default function TrendPage() {
               districts={districtList}
               hoveredId={hoveredId}
               selectedId={selectedDistrictId}
+              highlightUpIds={compareMode ? highlightUpIds : undefined}
+              highlightDownIds={compareMode ? highlightDownIds : undefined}
               getFillColor={(id) =>
                 compareMode ? getDeltaColor(mapValues[id]) : getRiskColor(mapValues[id])
               }
@@ -221,6 +251,9 @@ export default function TrendPage() {
           selectedScore={selectedScore}
           selectedYoY={selectedYoY}
           series={selectedSeries ?? averageSeries}
+          componentSeries={componentSeries}
+          topIncrease={topIncrease}
+          topDecrease={topDecrease}
           districts={districtList.map(({ id, nameKo }) => ({ id, nameKo }))}
           onYearChange={handleYearSelect}
           onToggleCompare={handleToggleCompare}
