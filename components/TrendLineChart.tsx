@@ -10,13 +10,19 @@ type TrendLineChartProps = {
   selectedYear: number;
   onSelectYear: (year: number) => void;
   title?: string;
+  frame?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
 };
 
 export default function TrendLineChart({
   points,
   selectedYear,
   onSelectYear,
-  title = '서울 평균 위험도 추이'
+  title = '서울 평균 위험도 추이',
+  frame = true,
+  className,
+  style
 }: TrendLineChartProps) {
   const width = 560;
   const height = 180;
@@ -34,8 +40,8 @@ export default function TrendLineChart({
     })
     .join(' ');
 
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+  const content = (
+    <>
       <p className="text-sm text-white/70">{title}</p>
       <svg
         viewBox={`0 0 ${width} ${height}`}
@@ -56,6 +62,7 @@ export default function TrendLineChart({
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"
+          className="trend-line"
         />
         {points.map((point, index) => {
           const x =
@@ -100,6 +107,20 @@ export default function TrendLineChart({
           );
         })}
       </svg>
+    </>
+  );
+
+  if (!frame) {
+    return (
+      <div className={className} style={style}>
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`trend-card p-4 ${className ?? ''}`.trim()} style={style}>
+      {content}
     </div>
   );
 }

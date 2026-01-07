@@ -8,6 +8,8 @@ type CompareToggleProps = {
   onToggle: () => void;
   onChangeA: (year: number) => void;
   onChangeB: (year: number) => void;
+  frame?: boolean;
+  className?: string;
 };
 
 export default function CompareToggle({
@@ -17,10 +19,12 @@ export default function CompareToggle({
   yearB,
   onToggle,
   onChangeA,
-  onChangeB
+  onChangeB,
+  frame = true,
+  className
 }: CompareToggleProps) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+  const content = (
+    <>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-white/70">비교 모드</p>
@@ -76,6 +80,16 @@ export default function CompareToggle({
           </label>
         </div>
       )}
+    </>
+  );
+
+  if (!frame) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <div className={`trend-card p-4 ${className ?? ''}`.trim()}>
+      {content}
     </div>
   );
 }

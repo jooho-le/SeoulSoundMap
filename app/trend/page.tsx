@@ -5,10 +5,7 @@ import Link from 'next/link';
 import { districts as baseDistricts } from '@/data/districts';
 import { years, scoresByYear } from '@/data/riskTimeSeries';
 import TrendMap from '@/components/TrendMap';
-import YearSlider from '@/components/YearSlider';
-import CompareToggle from '@/components/CompareToggle';
-import SummaryCards from '@/components/SummaryCards';
-import TrendLineChart from '@/components/TrendLineChart';
+import TrendEditorialPanel from '@/components/TrendEditorialPanel';
 import {
   calculateAverageSeries,
   calculateDeltaScores,
@@ -160,7 +157,6 @@ export default function TrendPage() {
           <h1 className="mt-2 text-2xl font-semibold text-white">
             과거부터 현재까지 서울의 위험점수변화 보기
           </h1>
-          
         </div>
         <Link
           href="/"
@@ -170,8 +166,8 @@ export default function TrendPage() {
         </Link>
       </header>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-3xl border border-white/10 bg-black/40 p-5">
+      <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:items-start">
+        <section className="rounded-3xl border border-white/10 bg-black/30 p-5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-white/50">
@@ -209,93 +205,30 @@ export default function TrendPage() {
           </div>
         </section>
 
-        <section className="flex flex-col gap-4">
-          <YearSlider
-            years={years}
-            value={compareMode ? yearB : year}
-            label={compareMode ? '비교 기준 연도(B)' : '연도 선택'}
-            onChange={handleYearSelect}
-          />
-          <CompareToggle
-            enabled={compareMode}
-            years={years}
-            yearA={yearA}
-            yearB={yearB}
-            onToggle={handleToggleCompare}
-            onChangeA={setYearA}
-            onChangeB={setYearB}
-          />
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-white/70">지역 선택</p>
-                <p className="text-xs text-white/40">
-                  선택 시 아래 차트가 해당 구 기준으로 바뀝니다.
-                </p>
-              </div>
-              {selectedDistrictId && (
-                <button
-                  type="button"
-                  onClick={handleClearDistrict}
-                  className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-widest text-white/60 transition hover:text-white"
-                >
-                  해제
-                </button>
-              )}
-            </div>
-            <select
-              value={selectedDistrictId ?? ''}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-                if (!nextValue) {
-                  handleClearDistrict();
-                  return;
-                }
-                handleSelectDistrict(nextValue);
-              }}
-              className="mt-3 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-            >
-              <option value="">서울 전체 평균</option>
-              {districtList.map((district) => (
-                <option key={district.id} value={district.id}>
-                  {district.nameKo}
-                </option>
-              ))}
-            </select>
-            {selectedName && (
-              <div className="mt-3 flex items-center justify-between text-xs text-white/55">
-                <span>{selectedName} 현재 점수</span>
-                <span>
-                  {selectedScore === null ? '--' : Math.round(selectedScore)}점
-                  {selectedYoY === null
-                    ? ''
-                    : ` · Δ ${formatDelta(selectedYoY)}`}
-                </span>
-              </div>
-            )}
-          </div>
-          <SummaryCards
-            compareMode={compareMode}
-            year={activeYear}
-            average={average}
-            yearOverYear={yearOverYear}
-            yearA={yearA}
-            yearB={yearB}
-            averageA={averageA}
-            averageB={averageB}
-            deltaAverage={deltaAverage}
-          />
-          <TrendLineChart
-            points={selectedSeries ?? averageSeries}
-            selectedYear={compareMode ? yearB : year}
-            onSelectYear={handleYearSelect}
-            title={
-              selectedName
-                ? `${selectedName} 위험도 추이`
-                : '서울 평균 위험도 추이'
-            }
-          />
-        </section>
+        <TrendEditorialPanel
+          years={years}
+          activeYear={activeYear}
+          compareMode={compareMode}
+          yearA={yearA}
+          yearB={yearB}
+          average={average}
+          yearOverYear={yearOverYear}
+          averageA={averageA}
+          averageB={averageB}
+          deltaAverage={deltaAverage}
+          selectedDistrictId={selectedDistrictId}
+          selectedName={selectedName}
+          selectedScore={selectedScore}
+          selectedYoY={selectedYoY}
+          series={selectedSeries ?? averageSeries}
+          districts={districtList.map(({ id, nameKo }) => ({ id, nameKo }))}
+          onYearChange={handleYearSelect}
+          onToggleCompare={handleToggleCompare}
+          onYearAChange={setYearA}
+          onYearBChange={setYearB}
+          onSelectDistrict={handleSelectDistrict}
+          onClearDistrict={handleClearDistrict}
+        />
       </div>
 
       {hoveredDistrict && tooltipPoint && (
